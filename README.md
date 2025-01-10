@@ -8,3 +8,5 @@ server uses:
 - DuckDB as a database
 
  When the context manager exits, the server is shutdown.
+ 
+For a code example, see the [`ephemeral-server-demo.py`](ephemeral-server-demo.py)
