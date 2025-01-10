@@ -1,11 +1,9 @@
+import pathlib
 import time
 
 import pyarrow
 
-from demo import Connection, NoOpAuthHandler, BasicAuthServerMiddlewareFactory
-
-import pathlib
-
+from demo import BasicAuthServerMiddlewareFactory, Connection, NoOpAuthHandler
 from demo.client import DuckDBFlightClient
 
 tls_certificates = []
@@ -14,7 +12,7 @@ scheme = "grpc+tls"
 host = "localhost"
 port = "5005"
 
-root = pathlib.Path(__file__).resolve().parents[1]
+root = pathlib.Path(__file__).resolve().parent
 
 certificate_path = root / "tls" / "server.crt"
 with open(certificate_path, "rb") as cert_file:
@@ -39,11 +37,14 @@ with Connection(
         )
     },
 ) as conn:
-
     time.sleep(5)
 
     client = DuckDBFlightClient(
-        host="localhost", port=5005, tls_roots=certificate_path
+        host="localhost",
+        port=5005,
+        username="test",
+        password="password",
+        tls_roots=certificate_path,
     )
 
     # Create a sample table

@@ -6,7 +6,14 @@ import pyarrow.flight
 
 
 class DuckDBFlightClient:
-    def __init__(self, host="localhost", port=8815, tls_roots=None):
+    def __init__(
+        self,
+        host="localhost",
+        port=8815,
+        username="test",
+        password="password",
+        tls_roots=None,
+    ):
         """
         Initialize the DuckDB Flight Client
 
@@ -14,8 +21,6 @@ class DuckDBFlightClient:
             host: Server host
             port: Server port
         """
-        location = pyarrow.flight.Location.for_grpc_tcp(host, port)
-
         kwargs = {}
 
         if tls_roots:
@@ -25,7 +30,9 @@ class DuckDBFlightClient:
         self._client = pyarrow.flight.FlightClient(
             f"grpc+tls://{host}:{port}", **kwargs
         )
-        token_pair = self._client.authenticate_basic_token(b"test", b"password")
+        token_pair = self._client.authenticate_basic_token(
+            username.encode(), password.encode()
+        )
         self._options = pyarrow.flight.FlightCallOptions(headers=[token_pair])
 
     def execute_query(self, query):

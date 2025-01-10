@@ -1,13 +1,11 @@
 import argparse
-import pyarrow as pa
-import pyarrow.flight
-
 import base64
+import json
 import secrets
 
-import json
-
 import duckdb
+import pyarrow as pa
+import pyarrow.flight
 
 
 class BasicAuthServerMiddlewareFactory(pa.flight.ServerMiddlewareFactory):

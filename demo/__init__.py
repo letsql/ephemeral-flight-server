@@ -2,7 +2,8 @@ import time
 from multiprocessing import Process, Queue
 
 import duckdb
-from demo.server import FlightServer, NoOpAuthHandler, BasicAuthServerMiddlewareFactory
+
+from demo.server import BasicAuthServerMiddlewareFactory, FlightServer, NoOpAuthHandler
 
 DEFAULT_AUTH_MIDDLEWARE = {
     "basic": BasicAuthServerMiddlewareFactory(
@@ -11,6 +12,7 @@ DEFAULT_AUTH_MIDDLEWARE = {
         }
     )
 }
+
 
 class ServerWorker:
     def __init__(
