@@ -7,6 +7,9 @@ import duckdb
 import pyarrow as pa
 import pyarrow.flight
 
+import demo.exchanger as E
+import demo.action as A
+
 
 class BasicAuthServerMiddlewareFactory(pa.flight.ServerMiddlewareFactory):
     """
@@ -111,6 +114,8 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         )
         self._conn = db_conn
         self._location = location
+        self.exchangers = E.exchangers
+        self.actions = A.actions
 
     def _make_flight_info(self, query):
         """
@@ -175,21 +180,24 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         ]
 
     def do_action(self, context, action):
-        """
-        Handle custom actions
-        """
-        if action.type == "list_tables":
-            tables = self._conn.execute("SHOW TABLES").fetchall()
-            for table in tables:
-                yield pyarrow.flight.Result(json.dumps(table[0]).encode("utf-8"))
-
-        elif action.type == "table_info":
-            table_name = action.body.to_pybytes().decode("utf-8")
-            schema = self._conn.execute(f"DESCRIBE {table_name}").fetchall()
-            yield pyarrow.flight.Result(json.dumps(schema).encode("utf-8"))
-
+        cls = self.actions.get(action.type)
+        if cls:
+            print(f"doing action: {action.type}")
+            yield from cls.do_action(self, context, action)
         else:
-            raise NotImplementedError
+            raise KeyError("Unknown action {!r}".format(action.type))
+
+
+    def do_exchange(self, context, descriptor, reader, writer):
+        if descriptor.descriptor_type != pyarrow.flight.DescriptorType.CMD:
+            raise pa.ArrowInvalid("Must provide a command descriptor")
+        command = descriptor.command.decode("ascii")
+        if command in self.exchangers:
+            print(f"Doing exchange: {command}")
+            return self.exchangers[command].exchange_f(context, reader, writer)
+        else:
+            raise pa.ArrowInvalid(
+                "Unknown command: {}".format(descriptor.command))
 
 
 def main():

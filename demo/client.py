@@ -1,9 +1,16 @@
 import argparse
 import json
+import time
+
+from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
 
 import pyarrow
 import pyarrow.flight
 
+from cloudpickle import dumps, loads
+
+executor = ThreadPoolExecutor()
 
 class DuckDBFlightClient:
     def __init__(
@@ -30,10 +37,34 @@ class DuckDBFlightClient:
         self._client = pyarrow.flight.FlightClient(
             f"grpc+tls://{host}:{port}", **kwargs
         )
+        self._wait_on_healthcheck()
         token_pair = self._client.authenticate_basic_token(
             username.encode(), password.encode()
         )
         self._options = pyarrow.flight.FlightCallOptions(headers=[token_pair])
+
+    def _wait_on_healthcheck(self):
+        while True:
+            try:
+                self.do_action(
+                    "healthcheck",
+                    options=pyarrow.flight.FlightCallOptions(timeout=1),
+                )
+                print("done healthcheck")
+                break
+            except pyarrow.ArrowIOError as e:
+                if "Deadline" in str(e):
+                    print("Server is not ready, waiting...")
+                else:
+                    raise e
+            except pyarrow.flight.FlightUnavailableError:
+                pass
+            except pyarrow.flight.FlightUnauthenticatedError:
+                break
+            finally:
+                n_seconds = 1
+                print(f"Flight server unavailable, sleeping {n_seconds} seconds")
+                time.sleep(n_seconds)
 
     def execute_query(self, query):
         """
@@ -102,6 +133,70 @@ class DuckDBFlightClient:
         return [
             json.loads(result.body.to_pybytes().decode("utf-8")) for result in results
         ]
+
+    def do_action(self, action_type, action_body="", options=None):
+        try:
+            action = pyarrow.flight.Action(
+                action_type,
+                dumps(action_body),
+            )
+            print('Running action', action_type)
+            return tuple(map(
+                loads,
+                (
+                    result.body.to_pybytes()
+                    for result in self._client.do_action(action, options=options)
+                ),
+            ))
+        except pyarrow.lib.ArrowIOError as e:
+            print("Error calling action:", e)
+
+    def do_exchange_batches(self, command, reader):
+
+        def do_writes(writer, reader):
+            writer.begin(reader.schema)
+            i = -1
+            for (i, batch) in enumerate(reader, 1):
+                writer.write_batch(batch)
+            writer.done_writing()
+            return i
+
+        def do_reads(_reader, queue):
+            i = -1
+            for (i, batch) in enumerate(_reader, 1):
+                queue.put(batch.data)
+            queue.put(None)
+            return i
+
+        def do_writes_reads(command, reader, queue):
+            descriptor = pyarrow.flight.FlightDescriptor.for_command(command)
+            writer, _reader = self._client.do_exchange(descriptor, self._options)
+            # `with writer` must happen inside a future
+            # # so its context remains alive during enclosed writes and reads
+            with writer:
+                do_writes_fut = executor.submit(do_writes, writer, reader)
+                do_reads_fut = executor.submit(do_reads, _reader, queue)
+                (n_writes, n_reads) = (do_writes_fut.result(), do_reads_fut.result())
+            return {"n_writes": n_writes, "n_reads": n_reads}
+
+        def queue_to_rbr(schema, queue):
+            def queue_to_gen(queue):
+                while (value := queue.get()) is not None:
+                    yield value
+            return pyarrow.RecordBatchReader.from_batches(schema, queue_to_gen(queue))
+
+        def get_output_schema(command, reader):
+            (dct,) = self.do_action("query-exchange", command, options=self._options)
+            assert dct["schema-in-condition"](reader.schema)
+            output_schema = dct['calc-schema-out'](reader.schema)
+            return output_schema
+
+        queue = Queue()
+        output_schema = get_output_schema(command, reader)
+        fut = executor.submit(do_writes_reads, command, reader, queue)
+        rbr = queue_to_rbr(output_schema, queue)
+        return fut, rbr
+
 
 
 def main():

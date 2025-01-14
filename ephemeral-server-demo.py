@@ -1,10 +1,19 @@
 import pathlib
-import time
+import datetime
 
 import pyarrow
+import pandas as pd
 
 from demo import BasicAuthServerMiddlewareFactory, Connection, NoOpAuthHandler
 from demo.client import DuckDBFlightClient
+
+def instrument_reader(reader, prefix=""):
+    def gen(reader):
+        print(f"{prefix}first batch yielded at {datetime.datetime.now()}")
+        yield next(reader)
+        yield from reader
+        print(f"{prefix}last batch yielded at {datetime.datetime.now()}")
+    return pyarrow.RecordBatchReader.from_batches(reader.schema, gen(reader))
 
 tls_certificates = []
 
@@ -37,8 +46,6 @@ with Connection(
         )
     },
 ) as conn:
-    time.sleep(5)
-
     client = DuckDBFlightClient(
         host="localhost",
         port=5005,
@@ -60,3 +67,19 @@ with Connection(
     # Execute a query
     result = client.execute_query("SELECT * FROM users WHERE id > 1")
     print("Query result:", result.to_pandas())
+
+    command = "echo"
+    data = pyarrow.Table.from_pandas(pd.DataFrame({"a": range(100_000)}))
+
+    fut, rbr = client.do_exchange_batches(
+        command,
+        instrument_reader(data.to_reader(max_chunksize=100)),
+    )
+
+    first_batch = next(rbr)
+    print(f"got first batch at {datetime.datetime.now()}")
+    rest = rbr.read_pandas()
+    print(f"got rest at {datetime.datetime.now()}")
+    print(rest)
+    print(f"fut.result(): {fut.result()}")
+
