@@ -89,6 +89,21 @@ class DuckDBFlightClient:
         reader = self._client.do_get(endpoint.ticket, options=self._options)
         return reader.read_all()
 
+    def execute_batches(self, query):
+        # Get FlightInfo
+        flight_info = self._client.get_flight_info(
+            pyarrow.flight.FlightDescriptor.for_command(query.encode("utf-8")),
+            options=self._options,
+        )
+
+        # Get the first endpoint
+        endpoint = flight_info.endpoints[0]
+
+        # Get the result
+        reader = self._client.do_get(endpoint.ticket, options=self._options)
+
+        return reader
+
     def upload_data(self, table_name, data):
         """
         Upload data to create or replace a table

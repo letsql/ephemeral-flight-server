@@ -3,6 +3,7 @@ from multiprocessing import Process, Queue
 
 import duckdb
 
+from demo.backend import Backend
 from demo.server import BasicAuthServerMiddlewareFactory, FlightServer, NoOpAuthHandler
 
 DEFAULT_AUTH_MIDDLEWARE = {
@@ -98,4 +99,16 @@ class Connection:
         self.p.terminate()
 
 
-__all__ = ["Connection"]
+def make_client(
+    host="localhost",
+    port=8815,
+    username="test",
+    password="password",
+    tls_roots=None,
+) -> Backend:
+    instance = Backend()
+    instance.do_connect(host=host, port=port, username=username, password=password, tls_roots=tls_roots)
+    return instance
+
+
+__all__ = ["Connection", "make_client"]
