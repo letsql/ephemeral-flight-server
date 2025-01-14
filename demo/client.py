@@ -197,7 +197,7 @@ class DuckDBFlightClient:
         rbr = queue_to_rbr(output_schema, queue)
         return fut, rbr
 
-
+    do_exchange = do_exchange_batches
 
 def main():
     parser = argparse.ArgumentParser()
