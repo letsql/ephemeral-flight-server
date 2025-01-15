@@ -12,6 +12,7 @@ from cloudpickle import dumps, loads
 
 executor = ThreadPoolExecutor()
 
+
 class DuckDBFlightClient:
     def __init__(
         self,
@@ -155,30 +156,31 @@ class DuckDBFlightClient:
                 action_type,
                 dumps(action_body),
             )
-            print('Running action', action_type)
-            return tuple(map(
-                loads,
-                (
-                    result.body.to_pybytes()
-                    for result in self._client.do_action(action, options=options)
-                ),
-            ))
+            print("Running action", action_type)
+            return tuple(
+                map(
+                    loads,
+                    (
+                        result.body.to_pybytes()
+                        for result in self._client.do_action(action, options=options)
+                    ),
+                )
+            )
         except pyarrow.lib.ArrowIOError as e:
             print("Error calling action:", e)
 
     def do_exchange_batches(self, command, reader):
-
         def do_writes(writer, reader):
             writer.begin(reader.schema)
             i = -1
-            for (i, batch) in enumerate(reader, 1):
+            for i, batch in enumerate(reader, 1):
                 writer.write_batch(batch)
             writer.done_writing()
             return i
 
         def do_reads(_reader, queue):
             i = -1
-            for (i, batch) in enumerate(_reader, 1):
+            for i, batch in enumerate(_reader, 1):
                 queue.put(batch.data)
             queue.put(None)
             return i
@@ -198,12 +200,13 @@ class DuckDBFlightClient:
             def queue_to_gen(queue):
                 while (value := queue.get()) is not None:
                     yield value
+
             return pyarrow.RecordBatchReader.from_batches(schema, queue_to_gen(queue))
 
         def get_output_schema(command, reader):
             (dct,) = self.do_action("query-exchange", command, options=self._options)
             assert dct["schema-in-condition"](reader.schema)
-            output_schema = dct['calc-schema-out'](reader.schema)
+            output_schema = dct["calc-schema-out"](reader.schema)
             return output_schema
 
         queue = Queue()
@@ -213,6 +216,7 @@ class DuckDBFlightClient:
         return fut, rbr
 
     do_exchange = do_exchange_batches
+
 
 def main():
     parser = argparse.ArgumentParser()

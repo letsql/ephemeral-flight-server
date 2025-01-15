@@ -1,11 +1,12 @@
-import pathlib
 import datetime
+import pathlib
 
-import pyarrow
 import pandas as pd
+import pyarrow
 
-from demo import BasicAuthServerMiddlewareFactory, Connection, NoOpAuthHandler
+from demo import EphemeralServer, BasicAuth
 from demo.client import DuckDBFlightClient
+
 
 def instrument_reader(reader, prefix=""):
     def gen(reader):
@@ -13,39 +14,26 @@ def instrument_reader(reader, prefix=""):
         yield next(reader)
         yield from reader
         print(f"{prefix}last batch yielded at {datetime.datetime.now()}")
+
     return pyarrow.RecordBatchReader.from_batches(reader.schema, gen(reader))
 
-tls_certificates = []
-
-scheme = "grpc+tls"
-host = "localhost"
-port = "5005"
 
 root = pathlib.Path(__file__).resolve().parent
 
 certificate_path = root / "tls" / "server.crt"
-with open(certificate_path, "rb") as cert_file:
-    tls_cert_chain = cert_file.read()
-
 key_path = root / "tls" / "server.key"
-with open(key_path, "rb") as key_file:
-    tls_private_key = key_file.read()
 
-tls_certificates.append((tls_cert_chain, tls_private_key))
+scheme = "grpc+tls"
+host = "localhost"
+port = "5005"
 location = "{}://{}:{}".format(scheme, host, port)
 
-with Connection(
-    location=location,
-    tls_certificates=tls_certificates,
-    auth_handler=NoOpAuthHandler(),
-    middleware={
-        "basic": BasicAuthServerMiddlewareFactory(
-            {
-                "test": "password",
-            }
-        )
-    },
-) as conn:
+with EphemeralServer(
+        location=location,
+        certificate_path=certificate_path,
+        key_path=key_path,
+        auth=BasicAuth("test", "password"),
+) as server:
     client = DuckDBFlightClient(
         host="localhost",
         port=5005,
@@ -82,4 +70,3 @@ with Connection(
     print(f"got rest at {datetime.datetime.now()}")
     print(rest)
     print(f"fut.result(): {fut.result()}")
-

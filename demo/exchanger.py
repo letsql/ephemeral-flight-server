@@ -13,6 +13,7 @@ import requests
 def schemas_equal(s0, s1):
     def schema_to_dct(s):
         return {name: s.field(name) for name in s.names}
+
     return schema_to_dct(s0) == schema_to_dct(s1)
 
 
@@ -27,13 +28,13 @@ def streaming_exchange(f, context, reader, writer, options=None, **kwargs):
 
 
 class AbstractExchanger(ABC):
-
     @classmethod
     @abstractproperty
     def exchange_f(cls):
         # return a function with the signature (context, reader, writer, **kwargs)
         def f(context, reader, writer, **kwargs):
             raise NotImplementedError
+
         return f
 
     @classmethod
@@ -65,16 +66,15 @@ class AbstractExchanger(ABC):
     @property
     def query_result(cls):
         return {
-            'schema-in-required': cls.schema_in_required,
-            'schema-in-condition': cls.schema_in_condition,
-            'calc-schema-out': cls.calc_schema_out,
-            'description': cls.description,
-            'command': cls.command,
+            "schema-in-required": cls.schema_in_required,
+            "schema-in-condition": cls.schema_in_condition,
+            "calc-schema-out": cls.calc_schema_out,
+            "description": cls.description,
+            "command": cls.command,
         }
 
 
 class EchoExchanger(AbstractExchanger):
-
     @classmethod
     @property
     def exchange_f(cls):
@@ -93,6 +93,7 @@ class EchoExchanger(AbstractExchanger):
                     writer.write_batch(chunk.data)
                 else:
                     assert False, "Should not happen"
+
         return exchange_echo
 
     @classmethod
@@ -105,6 +106,7 @@ class EchoExchanger(AbstractExchanger):
     def schema_in_condition(cls):
         def condition(schema_in):
             return True
+
         return condition
 
     @classmethod
@@ -112,6 +114,7 @@ class EchoExchanger(AbstractExchanger):
     def calc_schema_out(cls):
         def f(schema_in):
             return schema_in
+
         return f
 
     @classmethod
@@ -126,7 +129,6 @@ class EchoExchanger(AbstractExchanger):
 
 
 class RowSumAppendExchanger(AbstractExchanger):
-
     @classmethod
     @property
     def exchange_f(cls):
@@ -137,11 +139,12 @@ class RowSumAppendExchanger(AbstractExchanger):
                     raise pa.ArrowInvalid("Invalid field: " + repr(field))
             table = reader.read_all()
             result = table.append_column(
-                'sum',
+                "sum",
                 pa.array(table.to_pandas().sum(axis=1)),
             )
             writer.begin(result.schema)
             writer.write_table(result)
+
         return exchange_transform
 
     @classmethod
@@ -154,15 +157,15 @@ class RowSumAppendExchanger(AbstractExchanger):
     def schema_in_condition(cls):
         def condition(schema_in):
             return all(pa.types.is_integer(t) for t in schema_in.types)
+
         return condition
 
     @classmethod
     @property
     def calc_schema_out(cls):
         def f(schema_in):
-            return schema_in.append(
-                pa.field("sum", pa.int64())
-            )
+            return schema_in.append(pa.field("sum", pa.int64()))
+
         return f
 
     @classmethod
@@ -177,7 +180,6 @@ class RowSumAppendExchanger(AbstractExchanger):
 
 
 class RowSumExchanger(AbstractExchanger):
-
     @classmethod
     @property
     def exchange_f(cls):
@@ -194,6 +196,7 @@ class RowSumExchanger(AbstractExchanger):
             result = pa.Table.from_arrays([pa.array(sums)], names=["sum"])
             writer.begin(result.schema)
             writer.write_table(result)
+
         return exchange_transform
 
     @classmethod
@@ -206,6 +209,7 @@ class RowSumExchanger(AbstractExchanger):
     def schema_in_condition(cls):
         def condition(schema_in):
             return all(pa.types.is_integer(t) for t in schema_in.types)
+
         return condition
 
     @classmethod
@@ -213,6 +217,7 @@ class RowSumExchanger(AbstractExchanger):
     def calc_schema_out(cls):
         def f(schema_in):
             return pa.schema((pa.field("sum", pa.int64()),))
+
         return f
 
     @classmethod
@@ -243,33 +248,35 @@ class UrlOperatorExchanger(AbstractExchanger):
             if not cls.schema_in_condition(reader.schema):
                 raise pa.ArrowInvalid("Input does not satisfy schema_in_condition")
             table = reader.read_all()
+
             def f(url):
                 "return a row for each scheme"
                 parsed = urllib.parse.urlparse(url)
                 scheme_urls = tuple(
-                    parsed._replace(scheme=scheme).geturl()
-                    for scheme in cls.schemes
+                    parsed._replace(scheme=scheme).geturl() for scheme in cls.schemes
                 )
                 lengths = tuple(
-                    len(requests.get(scheme_url).content)
-                    for scheme_url in scheme_urls
+                    len(requests.get(scheme_url).content) for scheme_url in scheme_urls
                 )
-                df = pd.DataFrame({
-                    cls.url_field_name: [url]*len(cls.schemes),
-                    cls.scheme_field_name: scheme_urls,
-                    cls.length_field_name: lengths,
-                })
+                df = pd.DataFrame(
+                    {
+                        cls.url_field_name: [url] * len(cls.schemes),
+                        cls.scheme_field_name: scheme_urls,
+                        cls.length_field_name: lengths,
+                    }
+                )
                 table = pa.Table.from_pandas(df)
                 return table
-            result = (
-                pa.concat_tables(map(
+
+            result = pa.concat_tables(
+                map(
                     f,
                     table.column(cls.url_field_name).to_pylist(),
-                ))
-                .combine_chunks()
-            )
+                )
+            ).combine_chunks()
             writer.begin(result.schema)
             writer.write_table(result)
+
         return exchange_transform
 
     @classmethod
@@ -282,6 +289,7 @@ class UrlOperatorExchanger(AbstractExchanger):
     def schema_in_condition(cls):
         def condition(schema_in):
             return all(field in schema_in for field in cls.schema_in_required)
+
         return condition
 
     @classmethod
@@ -295,6 +303,7 @@ class UrlOperatorExchanger(AbstractExchanger):
                     pa.field(cls.length_field_name, cls.length_field_typ),
                 )
             )
+
         return f
 
     @classmethod
@@ -313,7 +322,6 @@ class UrlOperatorExchanger(AbstractExchanger):
 
 
 class UDFExchanger(AbstractExchanger):
-
     def __init__(self, f, schema_in, name, typ, append=True):
         self.f = f
         self.schema_in = schema_in
@@ -342,6 +350,7 @@ class UDFExchanger(AbstractExchanger):
     def schema_in_condition(self):
         def condition(schema_in):
             return all(el in schema_in for el in self.schema_in_required)
+
         return condition
 
     @property
@@ -354,6 +363,7 @@ class UDFExchanger(AbstractExchanger):
             else:
                 schema_out = pa.schema((field,))
             return schema_out
+
         return f
 
     @property
@@ -367,11 +377,11 @@ class UDFExchanger(AbstractExchanger):
     @property
     def query_result(self):
         return {
-            'schema-in-required': self.schema_in_required,
-            'schema-in-condition': self.schema_in_condition,
-            'calc-schema-out': self.calc_schema_out,
-            'description': self.description,
-            'command': self.command,
+            "schema-in-required": self.schema_in_required,
+            "schema-in-condition": self.schema_in_condition,
+            "calc-schema-out": self.calc_schema_out,
+            "description": self.description,
+            "command": self.command,
         }
 
 

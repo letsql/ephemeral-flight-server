@@ -1,18 +1,17 @@
 from operator import itemgetter
-from pathlib import Path
-from typing import Mapping, Any, Sequence
+from typing import Mapping, Any
 
+import pandas as pd
 import pyarrow as pa
+from ibis import util
+from ibis.common.collections import FrozenOrderedDict
 from ibis.expr import types as ir, schema as sch
 from letsql.backends.duckdb import Backend as DuckDBBackend
 
-import sqlglot as sg
-import sqlglot.expressions as sge
-
 from demo.client import DuckDBFlightClient
 
-class Backend(DuckDBBackend):
 
+class Backend(DuckDBBackend):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.con = None
@@ -25,7 +24,13 @@ class Backend(DuckDBBackend):
         password="password",
         tls_roots=None,
     ) -> None:
-        self.con = DuckDBFlightClient(host=host, port=port, username=username, password=password, tls_roots=tls_roots)
+        self.con = DuckDBFlightClient(
+            host=host,
+            port=port,
+            username=username,
+            password=password,
+            tls_roots=tls_roots,
+        )
 
     def get_schema(
         self,
@@ -38,14 +43,24 @@ class Backend(DuckDBBackend):
         names, types, nullables = zip(*map(itemgetter(0, 1, 2), fields))
 
         type_mapper = self.compiler.type_mapper
+
         return sch.Schema(
-            {
-                name: type_mapper.from_string(typ, nullable=null == "YES")
-                for name, typ, null in zip(names, types, nullables)
-            }
+            FrozenOrderedDict(
+                {
+                    name: type_mapper.from_string(typ, nullable=null == "YES")
+                    for name, typ, null in zip(names, types, nullables)
+                }
+            )
         )
 
-
+    def read_in_memory(
+        self,
+        source: pd.DataFrame | pa.Table | pa.RecordBatchReader,
+        table_name: str | None = None,
+    ) -> ir.Table:
+        table_name = table_name or util.gen_name("read_in_memory")
+        self.con.upload_data(table_name, source)
+        return self.table(table_name)
 
     def to_pyarrow_batches(
         self,

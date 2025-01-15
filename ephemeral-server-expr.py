@@ -1,81 +1,30 @@
-import datetime
 import pathlib
 
-import pyarrow
+import pyarrow as pa
 
-from demo import BasicAuthServerMiddlewareFactory, Connection, NoOpAuthHandler, make_client
-from demo.client import DuckDBFlightClient
+from demo import EphemeralServer, make_client, BasicAuth
 
-
-def instrument_reader(reader, prefix=""):
-    def gen(reader):
-        print(f"{prefix}first batch yielded at {datetime.datetime.now()}")
-        yield next(reader)
-        yield from reader
-        print(f"{prefix}last batch yielded at {datetime.datetime.now()}")
-    return pyarrow.RecordBatchReader.from_batches(reader.schema, gen(reader))
-
-tls_certificates = []
+root = pathlib.Path(__file__).resolve().parent
+certificate_path = root / "tls" / "server.crt"
+key_path = root / "tls" / "server.key"
 
 scheme = "grpc+tls"
 host = "localhost"
 port = "5005"
-
-root = pathlib.Path(__file__).resolve().parent
-
-certificate_path = root / "tls" / "server.crt"
-with open(certificate_path, "rb") as cert_file:
-    tls_cert_chain = cert_file.read()
-
-key_path = root / "tls" / "server.key"
-with open(key_path, "rb") as key_file:
-    tls_private_key = key_file.read()
-
-tls_certificates.append((tls_cert_chain, tls_private_key))
 location = "{}://{}:{}".format(scheme, host, port)
 
-with Connection(
+with EphemeralServer(
     location=location,
-    tls_certificates=tls_certificates,
-    auth_handler=NoOpAuthHandler(),
-    middleware={
-        "basic": BasicAuthServerMiddlewareFactory(
-            {
-                "test": "password",
-            }
-        )
-    },
-):
-    client = DuckDBFlightClient(
-        host="localhost",
-        port=5005,
-        username="test",
-        password="password",
-        tls_roots=certificate_path,
-    )
+    certificate_path=certificate_path,
+    key_path=key_path,
+    auth=BasicAuth("test", "password"),
+) as server:
+    con = make_client(server)
 
     # Create a sample table
-    data = pyarrow.table({"id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]})
-    client.upload_data("users", data)
-
-
-    con = make_client(
-        host="localhost",
-        port=5005,
-        username="test",
-        password="password",
-        tls_roots=certificate_path,
-    )
-
-    t = con.table("users")
+    data = pa.table({"id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]})
+    t = con.read_in_memory(data, table_name="users")
     expr = t.filter(t.id > 1).select(t.name)
 
-    assert (res := expr.execute())  is not None
+    assert (res := expr.execute()) is not None
     print(res)
-
-
-
-
-
-
-

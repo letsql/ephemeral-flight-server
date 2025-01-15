@@ -187,7 +187,6 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         else:
             raise KeyError("Unknown action {!r}".format(action.type))
 
-
     def do_exchange(self, context, descriptor, reader, writer):
         if descriptor.descriptor_type != pyarrow.flight.DescriptorType.CMD:
             raise pa.ArrowInvalid("Must provide a command descriptor")
@@ -196,8 +195,7 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             print(f"Doing exchange: {command}")
             return self.exchangers[command].exchange_f(context, reader, writer)
         else:
-            raise pa.ArrowInvalid(
-                "Unknown command: {}".format(descriptor.command))
+            raise pa.ArrowInvalid("Unknown command: {}".format(descriptor.command))
 
 
 def main():

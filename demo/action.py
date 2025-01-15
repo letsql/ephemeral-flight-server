@@ -19,7 +19,6 @@ from demo.utils import (
 
 
 class AbstractAction(ABC):
-
     @abstractclassmethod
     @abstractproperty
     def name(cls):
@@ -36,7 +35,6 @@ class AbstractAction(ABC):
 
 
 class HealthCheckAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -53,7 +51,6 @@ class HealthCheckAction(AbstractAction):
 
 
 class ClearAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -66,13 +63,10 @@ class ClearAction(AbstractAction):
 
     @classmethod
     def do_action(cls, server, context, action):
-        raise NotImplementedError(
-            f"{action.type} is not implemented."
-        )
+        raise NotImplementedError(f"{action.type} is not implemented.")
 
 
 class ShutdownAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -85,13 +79,12 @@ class ShutdownAction(AbstractAction):
 
     @classmethod
     def do_action(cls, server, context, action):
-        yield make_flight_result('Shutdown!')
+        yield make_flight_result("Shutdown!")
         # Shut down on background thread to avoid blocking current request
         threading.Thread(target=server._shutdown).start()
 
 
 class ListExchangesAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -110,7 +103,6 @@ class ListExchangesAction(AbstractAction):
 
 
 class AddActionAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -129,7 +121,6 @@ class AddActionAction(AbstractAction):
 
 
 class AddExchangeAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -148,7 +139,6 @@ class AddExchangeAction(AbstractAction):
 
 
 class QueryExchangeAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -168,7 +158,6 @@ class QueryExchangeAction(AbstractAction):
 
 
 class ListTablesAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -185,8 +174,8 @@ class ListTablesAction(AbstractAction):
         for table in tables:
             yield pyarrow.flight.Result(json.dumps(table[0]).encode("utf-8"))
 
-class TableInfoAction(AbstractAction):
 
+class TableInfoAction(AbstractAction):
     @classmethod
     @property
     def name(cls):
@@ -202,6 +191,7 @@ class TableInfoAction(AbstractAction):
         table_name = action.body.to_pybytes().decode("utf-8")
         schema = server._conn.execute(f"DESCRIBE {table_name}").fetchall()
         yield pyarrow.flight.Result(json.dumps(schema).encode("utf-8"))
+
 
 actions = {
     action.name: action
