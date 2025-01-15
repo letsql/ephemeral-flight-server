@@ -1,11 +1,11 @@
 import datetime
-import pathlib
 
 import pandas as pd
 import pyarrow
 
 from demo import EphemeralServer, BasicAuth
 from demo.client import DuckDBFlightClient
+from util import certificate_path, key_path, scheme, host, port
 
 
 def instrument_reader(reader, prefix=""):
@@ -18,14 +18,6 @@ def instrument_reader(reader, prefix=""):
     return pyarrow.RecordBatchReader.from_batches(reader.schema, gen(reader))
 
 
-root = pathlib.Path(__file__).resolve().parent
-
-certificate_path = root / "tls" / "server.crt"
-key_path = root / "tls" / "server.key"
-
-scheme = "grpc+tls"
-host = "localhost"
-port = "5005"
 location = "{}://{}:{}".format(scheme, host, port)
 
 with EphemeralServer(

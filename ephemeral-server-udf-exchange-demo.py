@@ -4,6 +4,7 @@ import pathlib
 import pandas as pd
 import pyarrow as pa
 
+from util import certificate_path, key_path, scheme, host, port
 from demo import EphemeralServer, BasicAuth
 from demo.action import AddExchangeAction
 from demo.client import DuckDBFlightClient
@@ -23,13 +24,6 @@ def instrument_reader(reader, prefix=""):
 def my_f(df):
     return df[["a", "b"]].sum(axis=1)
 
-root = pathlib.Path(__file__).resolve().parent
-certificate_path = root / "tls" / "server.crt"
-key_path = root / "tls" / "server.key"
-
-scheme = "grpc+tls"
-host = "localhost"
-port = "5005"
 location = "{}://{}:{}".format(scheme, host, port)
 
 with EphemeralServer(

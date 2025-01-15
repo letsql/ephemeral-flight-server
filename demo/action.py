@@ -192,6 +192,41 @@ class TableInfoAction(AbstractAction):
         schema = server._conn.execute(f"DESCRIBE {table_name}").fetchall()
         yield pyarrow.flight.Result(json.dumps(schema).encode("utf-8"))
 
+class DropTableAction(AbstractAction):
+
+    @classmethod
+    @property
+    def name(cls):
+        return "drop_table"
+
+    @classmethod
+    @property
+    def description(cls):
+        return "Drop a table on this server."
+
+    @classmethod
+    def do_action(cls, server, context, action):
+        table_name = loads(action.body)
+        server._conn.execute(f"DROP TABLE {table_name}")
+        yield make_flight_result(f"dropped table {table_name}")
+
+class DropViewAction(AbstractAction):
+
+    @classmethod
+    @property
+    def name(cls):
+        return "drop_view"
+
+    @classmethod
+    @property
+    def description(cls):
+        return "Drop a view on this server."
+
+    @classmethod
+    def do_action(cls, server, context, action):
+        table_name = loads(action.body)
+        server._conn.execute(f"DROP VIEW IF EXISTS {table_name}")
+        yield make_flight_result(f"dropped view {table_name}")
 
 actions = {
     action.name: action
@@ -205,5 +240,7 @@ actions = {
         AddExchangeAction,
         ListTablesAction,
         TableInfoAction,
+        DropTableAction,
+        DropViewAction,
     )
 }

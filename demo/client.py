@@ -121,6 +121,19 @@ class DuckDBFlightClient:
         writer.write_table(data)
         writer.close()
 
+    def upload_batches(self, table_name, reader):
+
+        writer, _ = self._client.do_put(
+            pyarrow.flight.FlightDescriptor.for_command(table_name.encode("utf-8")),
+            reader.schema,
+            options=self._options,
+        )
+
+        for i, batch in enumerate(reader, 1):
+            writer.write_batch(batch)
+        writer.done_writing()
+        writer.close()
+
     def list_tables(self):
         """
         List all available tables

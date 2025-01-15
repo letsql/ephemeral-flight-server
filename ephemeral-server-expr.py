@@ -1,16 +1,8 @@
-import pathlib
-
 import pyarrow as pa
 
 from demo import EphemeralServer, make_client, BasicAuth
+from util import certificate_path, key_path, scheme, host, port
 
-root = pathlib.Path(__file__).resolve().parent
-certificate_path = root / "tls" / "server.crt"
-key_path = root / "tls" / "server.key"
-
-scheme = "grpc+tls"
-host = "localhost"
-port = "5005"
 location = "{}://{}:{}".format(scheme, host, port)
 
 with EphemeralServer(
