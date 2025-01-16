@@ -10,7 +10,7 @@ from ibis.common.collections import FrozenOrderedDict
 from ibis.expr import types as ir, schema as sch
 from letsql.backends.duckdb import Backend as DuckDBBackend
 
-from demo.action import DropTableAction, DropViewAction, ReadParquetAction
+from demo.action import DropTableAction, DropViewAction, ReadParquetAction, ListTablesAction
 from demo.client import DuckDBFlightClient
 
 
@@ -90,9 +90,19 @@ class Backend(DuckDBBackend):
         table_name: str | None = None,
         **kwargs: Any,
     ) -> ir.Table:
+        if isinstance(source, pd.DataFrame):
+            source = pa.Table.from_pandas(source)
+            source = pa.RecordBatchReader.from_batches(source.schema, source.to_batches())
+
         if isinstance(source, pa.RecordBatchReader):
             self.con.upload_batches(table_name, source)
+
         return self.table(table_name)
+
+    @property
+    def tables(self):
+        res = self.con.do_action(ListTablesAction.name, action_body="list_tables", options=self.con._options)
+        return res[0]
 
 
     def drop_table(

@@ -170,9 +170,8 @@ class ListTablesAction(AbstractAction):
 
     @classmethod
     def do_action(cls, server, context, action):
-        tables = server._conn.execute("SHOW TABLES").fetchall()
-        for table in tables:
-            yield pyarrow.flight.Result(json.dumps(table[0]).encode("utf-8"))
+        tables = server._conn.tables
+        yield make_flight_result(tuple(tables))
 
 
 class TableInfoAction(AbstractAction):

@@ -22,20 +22,23 @@ with EphemeralServer(
         key_path=key_path,
         auth=BasicAuth("test", "password"),
     ) as second:
-        main_con = make_client(main)
-        second_con = make_client(second)
+        con0 = make_client(main)
+        con1 = make_client(second)
 
-        left = main_con.read_parquet(str(batting_path), table_name="batting")
-        right = second_con.read_parquet(str(batting_path), table_name="batting")
+        df_groups = {
+            "a": pd.DataFrame({"time": [1, 3, 5]}, ),
+            "b": pd.DataFrame({"time": [2, 4, 6]}, ),
+            "c": pd.DataFrame({"time": [2.5, 4.5, 6.5]}, ),
+        }
 
-        left_t = left[lambda t: t.yearID == 2015]
-        right_t = right[lambda t: t.yearID == 2014]
-
-        expr = left_t.join(into_backend(right_t, main_con), "playerID")
-        result = (
-            expr
-            .pipe(ls.execute)
-        )
-
-        assert isinstance(result, pd.DataFrame)
-        assert len(result) > 0
+        for name, df in df_groups.items():
+            con0.register(df, f"df-{name}")
+        dct = {
+            table: ls.expr.relations.into_backend(con0.table(table), con1, f"remote-{table}")
+            for table in reversed(list(con0.tables))
+        }
+        (t, other, *others) = tuple(dct.values())
+        for other in others[:1]:
+            t = t.asof_join(other, "time").drop("time_right")
+        out = ls.execute(t)
+        print(out)
