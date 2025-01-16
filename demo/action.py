@@ -228,6 +228,29 @@ class DropViewAction(AbstractAction):
         server._conn.drop_view(table_name)
         yield make_flight_result(f"dropped view {table_name}")
 
+
+class ReadParquetAction(AbstractAction):
+
+    @classmethod
+    @property
+    def name(cls):
+        return "read_parquet"
+
+    @classmethod
+    @property
+    def description(cls):
+        return "Read parquet files into this server."
+
+    @classmethod
+    def do_action(cls, server, context, action):
+        args = loads(action.body)
+
+        table_name = args["table_name"]
+        source_list = args["source_list"]
+
+        server._conn.read_parquet(source_list, table_name)
+        yield make_flight_result(f"read parquet file {table_name}")
+
 actions = {
     action.name: action
     for action in (
@@ -242,5 +265,6 @@ actions = {
         TableInfoAction,
         DropTableAction,
         DropViewAction,
+        ReadParquetAction,
     )
 }

@@ -4,12 +4,13 @@ from typing import Mapping, Any, Iterable
 
 import pandas as pd
 import pyarrow as pa
+import sqlglot as sg
 from ibis import util
 from ibis.common.collections import FrozenOrderedDict
 from ibis.expr import types as ir, schema as sch
 from letsql.backends.duckdb import Backend as DuckDBBackend
 
-from demo.action import DropTableAction, DropViewAction
+from demo.action import DropTableAction, DropViewAction, ReadParquetAction
 from demo.client import DuckDBFlightClient
 
 
@@ -75,7 +76,12 @@ class Backend(DuckDBBackend):
         table_name: str | None = None,
         **kwargs: Any,
     ) -> ir.Table:
-        self.con.read_parquet(source_list, table_name, **kwargs)
+        args = {
+            "source_list": source_list,
+            "table_name": table_name,
+        }
+        self.con.do_action(ReadParquetAction.name, action_body=args, options=self.con._options)
+        return self.table(table_name)
 
 
     def register(
