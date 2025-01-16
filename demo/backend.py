@@ -1,6 +1,6 @@
 from operator import itemgetter
 from pathlib import Path
-from typing import Mapping, Any
+from typing import Mapping, Any, Iterable
 
 import pandas as pd
 import pyarrow as pa
@@ -67,6 +67,15 @@ class Backend(DuckDBBackend):
         elif isinstance(source, pa.RecordBatchReader):
             self.con.upload_batches(table_name, source)
         return self.table(table_name)
+
+
+    def read_parquet(
+        self,
+        source_list: str | Iterable[str],
+        table_name: str | None = None,
+        **kwargs: Any,
+    ) -> ir.Table:
+        self.con.read_parquet(source_list, table_name, **kwargs)
 
 
     def register(

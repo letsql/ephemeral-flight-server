@@ -96,7 +96,7 @@ class NoOpAuthHandler(pa.flight.ServerAuthHandler):
 class FlightServer(pyarrow.flight.FlightServerBase):
     def __init__(
         self,
-        db_conn,
+        con_callable,
         location=None,
         tls_certificates=None,
         verify_client=False,
@@ -112,7 +112,7 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             root_certificates=root_certificates,
             middleware=middleware,
         )
-        self._conn = db_conn
+        self._conn = con_callable()
         self._location = location
         self.exchangers = E.exchangers
         self.actions = A.actions
@@ -125,7 +125,7 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             query: SQL query string
         """
         # Execute query to get schema and metadata
-        result = self._conn.execute(query).arrow()
+        result = self._conn.sql(query).to_pyarrow()
         descriptor = pyarrow.flight.FlightDescriptor.for_command(query)
 
         endpoints = [pyarrow.flight.FlightEndpoint(query, [self._location])]
@@ -148,7 +148,7 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         query = ticket.ticket.decode("utf-8")
         try:
             # Execute query and convert to Arrow table
-            result = self._conn.execute(query).arrow()
+            result = self._conn.sql(query).to_pyarrow()
             return pyarrow.flight.RecordBatchStream(result)
         except Exception as e:
             raise pyarrow.flight.FlightServerError(f"Error executing query: {str(e)}")
@@ -162,11 +162,7 @@ class FlightServer(pyarrow.flight.FlightServerBase):
 
         try:
             # Convert Arrow table to DuckDB table
-            self._conn.register("temp_table", data)
-            self._conn.execute(
-                f"CREATE OR REPLACE TABLE {table_name} AS SELECT * FROM temp_table"
-            )
-            self._conn.execute("DROP VIEW temp_table")
+            self._conn.register(data, table_name=table_name)
         except Exception as e:
             raise pyarrow.flight.FlightServerError(f"Error creating table: {str(e)}")
 
@@ -175,8 +171,8 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         List available custom actions
         """
         return [
-            ("list_tables", "List all available tables"),
-            ("table_info", "Get table schema and info"),
+            (action.name, action.description)
+            for action in self.actions.values()
         ]
 
     def do_action(self, context, action):

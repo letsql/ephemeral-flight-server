@@ -1,7 +1,7 @@
 import time
 from multiprocessing import Process, Queue
 
-import duckdb
+import letsql as ls
 
 from demo.backend import Backend
 from demo.server import BasicAuthServerMiddlewareFactory, FlightServer, NoOpAuthHandler
@@ -30,7 +30,7 @@ class ServerWorker:
 
         self.started = False
         self.server = FlightServer(
-            duckdb.connect(":memory:"),
+            ls.duckdb.connect,
             location,
             tls_certificates=tls_certificates,
             verify_client=verify_client,

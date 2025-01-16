@@ -189,7 +189,7 @@ class TableInfoAction(AbstractAction):
     @classmethod
     def do_action(cls, server, context, action):
         table_name = action.body.to_pybytes().decode("utf-8")
-        schema = server._conn.execute(f"DESCRIBE {table_name}").fetchall()
+        schema = server._conn.con.execute(f"DESCRIBE {table_name}").fetchall()
         yield pyarrow.flight.Result(json.dumps(schema).encode("utf-8"))
 
 class DropTableAction(AbstractAction):
@@ -207,7 +207,7 @@ class DropTableAction(AbstractAction):
     @classmethod
     def do_action(cls, server, context, action):
         table_name = loads(action.body)
-        server._conn.execute(f"DROP TABLE {table_name}")
+        server._conn.execute(table_name)
         yield make_flight_result(f"dropped table {table_name}")
 
 class DropViewAction(AbstractAction):
@@ -225,7 +225,7 @@ class DropViewAction(AbstractAction):
     @classmethod
     def do_action(cls, server, context, action):
         table_name = loads(action.body)
-        server._conn.execute(f"DROP VIEW IF EXISTS {table_name}")
+        server._conn.drop_view(table_name)
         yield make_flight_result(f"dropped view {table_name}")
 
 actions = {
