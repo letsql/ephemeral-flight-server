@@ -4,7 +4,7 @@ import pandas as pd
 import pyarrow
 
 from demo import EphemeralServer, BasicAuth
-from demo.client import DuckDBFlightClient
+from demo.client import FlightClient
 from util import certificate_path, key_path, scheme, host, port
 
 
@@ -26,7 +26,7 @@ with EphemeralServer(
         key_path=key_path,
         auth=BasicAuth("test", "password"),
 ) as server:
-    client = DuckDBFlightClient(
+    client = FlightClient(
         host="localhost",
         port=5005,
         username="test",

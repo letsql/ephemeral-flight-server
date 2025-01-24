@@ -17,3 +17,7 @@ dependencies = [
 dev = [
     "ruff>=0.9.0",
 ]
+test = [
+    "datafusion>=43.1.0",
+    "pytest>=8.3.4",
+]

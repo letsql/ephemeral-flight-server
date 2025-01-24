@@ -183,6 +183,23 @@ wheels = [
 ]
 
 [[package]]
+name = "datafusion"
+version = "43.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyarrow" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f6/87/195496ccdc4bf557fcac60a6d42878ffc347eceab20509866291f6193930/datafusion-43.1.0.tar.gz", hash = "sha256:271fee9ed931e976bd095ceb50ba9907fd93267f4f9517a6ea83cd46c1aa42d5", size = 141499 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/71/180fb6861e3315a1df9aa719ab46f22479bd86bc5cfd3b8e082f4775dd2b/datafusion-43.1.0-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:b40afe48762c7649d1ec3a0116e31d3ee5226812fc4896c0f309d3d490a855c8", size = 20362799 },
+    { url = "https://files.pythonhosted.org/packages/f8/e6/024b1dba599897eaf538d11b107132188c74a33dcbf041b231c8531cbc51/datafusion-43.1.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:a61d3efa91578108631ae5f8f070e15656d8eb125a34fe9a1df13db72ce1bcde", size = 18561250 },
+    { url = "https://files.pythonhosted.org/packages/32/8f/d6329d65ae83f5485b41b216138bab45bd206465cf6df537f5753178eee7/datafusion-43.1.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eb46deaf625558819cff708acb115d1d249a18adf51e1eaabda898979b344b5b", size = 22558573 },
+    { url = "https://files.pythonhosted.org/packages/2b/f4/b9ad6cec2702ff988b3d45386c2fb92744b3b13126da29abaec43d894573/datafusion-43.1.0-cp38-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:0d9ae56162304475a147c8e7284b85bda1849659c4495da4d071834a2e6392cd", size = 21381501 },
+    { url = "https://files.pythonhosted.org/packages/39/ea/5b14fa3866e7b2aad824a07b33fc719531443952cef8c0678f0cc545b9cb/datafusion-43.1.0-cp38-abi3-win_amd64.whl", hash = "sha256:930830dad47925b1a84b281184eafc00152f02a84a8acc770ac3ebd36b4db5ac", size = 22112172 },
+]
+
+[[package]]
 name = "duckdb"
 version = "1.1.3"
 source = { registry = "https://pypi.org/simple" }
@@ -223,6 +240,10 @@ dependencies = [
 dev = [
     { name = "ruff" },
 ]
+test = [
+    { name = "datafusion" },
+    { name = "pytest" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -236,6 +257,10 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = ">=0.9.0" }]
+test = [
+    { name = "datafusion", specifier = ">=43.1.0" },
+    { name = "pytest", specifier = ">=8.3.4" },
+]
 
 [[package]]
 name = "fsspec"

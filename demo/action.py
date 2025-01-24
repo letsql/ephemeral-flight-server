@@ -192,6 +192,7 @@ class TableInfoAction(AbstractAction):
         schema = server._conn.con.execute(query).fetchall()
         yield pyarrow.flight.Result(json.dumps(schema).encode("utf-8"))
 
+
 class DropTableAction(AbstractAction):
 
     @classmethod
@@ -209,6 +210,7 @@ class DropTableAction(AbstractAction):
         table_name = loads(action.body)
         server._conn.execute(table_name)
         yield make_flight_result(f"dropped table {table_name}")
+
 
 class DropViewAction(AbstractAction):
 

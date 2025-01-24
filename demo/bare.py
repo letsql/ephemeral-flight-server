@@ -58,54 +58,20 @@ class Backend(DuckDBBackend):
             )
         )
 
-    def read_in_memory(
+    def list_tables(
         self,
-        source: pd.DataFrame | pa.Table | pa.RecordBatchReader,
-        table_name: str | None = None,
-    ) -> ir.Table:
-        table_name = table_name or util.gen_name("read_in_memory")
+        like: str | None = None,
+        database: tuple[str, str] | str | None = None,
+        schema: str | None = None,
+    ) -> list[str]:
 
-        if isinstance(source, pa.Table):
-            self.con.upload_data(table_name, source)
-        elif isinstance(source, pa.RecordBatchReader):
-            self.con.upload_batches(table_name, source)
-        return self.table(table_name)
-
-
-    def read_parquet(
-        self,
-        source_list: str | Iterable[str],
-        table_name: str | None = None,
-        **kwargs: Any,
-    ) -> ir.Table:
         args = {
-            "source_list": source_list,
-            "table_name": table_name,
+            "like": like,
+            "database": database,
+            "schema": schema,
         }
-        self.con.do_action(ReadParquetAction.name, action_body=args, options=self.con._options)
-        return self.table(table_name)
 
-
-    def register(
-        self,
-        source: str | Path | Any,
-        table_name: str | None = None,
-        **kwargs: Any,
-    ) -> ir.Table:
-        if isinstance(source, pd.DataFrame):
-            source = pa.Table.from_pandas(source)
-            source = pa.RecordBatchReader.from_batches(source.schema, source.to_batches())
-
-        if isinstance(source, pa.RecordBatchReader):
-            self.con.upload_batches(table_name, source)
-
-        return self.table(table_name)
-
-    @property
-    def tables(self):
-        res = self.con.do_action(ListTablesAction.name, action_body="list_tables", options=self.con._options)
-        return res[0]
-
+        return self.con.do_action(ListTablesAction.name, action_body=args, options=self.con._options)
 
     def drop_table(
         self,

@@ -13,7 +13,7 @@ from cloudpickle import dumps, loads
 executor = ThreadPoolExecutor()
 
 
-class DuckDBFlightClient:
+class FlightClient:
     def __init__(
         self,
         host="localhost",
@@ -58,8 +58,8 @@ class DuckDBFlightClient:
                     print("Server is not ready, waiting...")
                 else:
                     raise e
-            except pyarrow.flight.FlightUnavailableError:
-                pass
+            except pyarrow.flight.FlightUnavailableError as e:
+                print(e)
             except pyarrow.flight.FlightUnauthenticatedError:
                 break
             finally:
@@ -241,7 +241,7 @@ def main():
     parser.add_argument("--port", default=5005, help="Host port")
     args = parser.parse_args()
 
-    client = DuckDBFlightClient(
+    client = FlightClient(
         host=args.host, port=args.port, tls_roots=args.tls_roots
     )
 

@@ -7,7 +7,7 @@ import pyarrow as pa
 from util import certificate_path, key_path, scheme, host, port
 from demo import EphemeralServer, BasicAuth
 from demo.action import AddExchangeAction
-from demo.client import DuckDBFlightClient
+from demo.client import FlightClient
 from demo.exchanger import UDFExchanger
 
 
@@ -32,7 +32,7 @@ with EphemeralServer(
         key_path=key_path,
         auth=BasicAuth("test", "password"),
 ) as server:
-    client = DuckDBFlightClient(
+    client = FlightClient(
         host="localhost",
         port=5005,
         username="test",

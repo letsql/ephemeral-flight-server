@@ -1,3 +1,4 @@
+import threading
 import time
 from multiprocessing import Process, Queue
 
@@ -24,13 +25,14 @@ class ServerWorker:
         root_certificates=None,
         auth_handler=NoOpAuthHandler(),
         middleware=None,
+        connection=None,
     ):
         if middleware is None:
             middleware = DEFAULT_AUTH_MIDDLEWARE
 
         self.started = False
         self.server = FlightServer(
-            ls.duckdb.connect,
+            connection,
             location,
             tls_certificates=tls_certificates,
             verify_client=verify_client,
@@ -41,24 +43,29 @@ class ServerWorker:
 
     def _serve(self):
         if not self.started:
+            print("Server is starting...")
             self.server.serve()
         self.started = True
 
     def _shutdown(self):
-        """Shut down after a delay."""
         print("Server is shutting down...")
-        time.sleep(2)
         self.server.shutdown()
 
     def handle(self, commands):
         while True:
             command = commands.get()
+            print(command)
             if command == "serve":
-                self._serve()
+                pass
+                # self._serve()
             elif command == "shutdown":
-                self._shutdown()
+                try:
+                    threading.Thread(target=self._shutdown).start()
+                except Exception as e:
+                    print("this", e)
                 break
-
+            else:
+                raise Exception(f"Unknown command, {command}")
 
 class BasicAuth:
     def __init__(self, username, password):
@@ -87,6 +94,7 @@ class EphemeralServer:
         verify_client=False,
         root_certificates=None,
         auth: BasicAuth = None,
+        connection = ls.duckdb.connect,
     ):
         self.location = location
         self.certificate_path = certificate_path
@@ -111,6 +119,7 @@ class EphemeralServer:
                 root_certificates=root_certificates,
                 auth_handler=NoOpAuthHandler(),
                 middleware=to_basic_auth_middleware(auth),
+                connection = connection
             )
             worker.handle(cmd_q)
 
@@ -120,16 +129,18 @@ class EphemeralServer:
 
     def __enter__(self):
         print("Server started...")
-        self.commands.put(("serve",))
+        self.commands.put("serve")
         return self
 
     def __exit__(self, *args):
         self.close()
 
     def close(self):
-        print("Server shutting down...")
-        self.commands.put(("shutdown",))
-        self.p.terminate()
+        self.commands.put("shutdown")
+        # self.p.terminate()
+        self.p.join()
+        # res = self.commands.get()
+        # self.p.join()
 
 
 def make_client(
@@ -149,5 +160,21 @@ def make_client(
     )
     return instance
 
+def make_con(
+    se: EphemeralServer,
+) -> Backend:
+    from urllib.parse import urlparse
 
-__all__ = ["EphemeralServer", "make_client", "BasicAuth"]
+    url = urlparse(se.location)
+
+    instance = Backend()
+    instance.do_connect(
+        host=url.hostname,
+        port=url.port,
+        username=se.auth.username,
+        password=se.auth.password,
+        tls_roots=se.certificate_path,
+    )
+    return instance
+
+__all__ = ["EphemeralServer", "make_client", "make_con", "BasicAuth"]
