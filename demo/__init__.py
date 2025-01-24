@@ -51,22 +51,6 @@ class ServerWorker:
         print("Server is shutting down...")
         self.server.shutdown()
 
-    def handle(self, commands):
-        while True:
-            command = commands.get()
-            print(command)
-            if command == "serve":
-                pass
-                # self._serve()
-            elif command == "shutdown":
-                try:
-                    threading.Thread(target=self._shutdown).start()
-                except Exception as e:
-                    print("this", e)
-                break
-            else:
-                raise Exception(f"Unknown command, {command}")
-
 class BasicAuth:
     def __init__(self, username, password):
         self.username = username
@@ -111,37 +95,33 @@ class EphemeralServer:
 
         tls_certificates.append((tls_cert_chain, tls_private_key))
 
-        def server_process(cmd_q):
-            worker = ServerWorker(
-                location=location,
-                tls_certificates=tls_certificates,
-                verify_client=verify_client,
-                root_certificates=root_certificates,
-                auth_handler=NoOpAuthHandler(),
-                middleware=to_basic_auth_middleware(auth),
-                connection = connection
-            )
-            worker.handle(cmd_q)
+        self.server = FlightServer(
+            connection,
+            location,
+            tls_certificates=tls_certificates,
+            verify_client=verify_client,
+            root_certificates=root_certificates,
+            auth_handler=NoOpAuthHandler(),
+            middleware=to_basic_auth_middleware(auth),
+        )
 
-        self.commands = Queue()
-        self.p = Process(target=server_process, args=(self.commands,))
-        self.p.start()
 
     def __enter__(self):
-        print("Server started...")
-        self.commands.put("serve")
         return self
 
     def __exit__(self, *args):
-        self.close()
+        self.server.__exit__(*args)
+
+    def _shutdown(self):
+        """Shut down after a delay."""
+        print("Server is shutting down...")
+        self.server.shutdown()
+        time.sleep(2)
 
     def close(self):
-        self.commands.put("shutdown")
-        # self.p.terminate()
-        self.p.join()
-        # res = self.commands.get()
-        # self.p.join()
+        self._shutdown()
 
+        # threading.Thread(target=self._shutdown).start()
 
 def make_client(
     con: EphemeralServer,

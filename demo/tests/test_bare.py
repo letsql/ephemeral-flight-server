@@ -1,9 +1,10 @@
-import time
-
 import letsql as ls
 import pytest
 
 from demo import EphemeralServer, BasicAuth, make_con
+from util import certificate_path, key_path, scheme, host
+
+
 @pytest.mark.parametrize(
     "connection,port",
     [
@@ -22,7 +23,5 @@ def test_create_and_list_tables(connection, port):
             connection=connection,
     ) as main:
         con = make_con(main)
-    assert main.p.exitcode == 0
-
-
-from util import certificate_path, key_path, scheme, host
+        res = con.tables
+        assert isinstance(res, tuple)
