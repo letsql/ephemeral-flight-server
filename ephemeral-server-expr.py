@@ -1,6 +1,6 @@
 import pyarrow as pa
 
-from demo import EphemeralServer, make_client, BasicAuth
+from demo import EphemeralServer, make_con, BasicAuth
 from util import certificate_path, key_path, scheme, host, port
 
 location = "{}://{}:{}".format(scheme, host, port)
@@ -11,7 +11,7 @@ with EphemeralServer(
     key_path=key_path,
     auth=BasicAuth("test", "password"),
 ) as server:
-    con = make_client(server)
+    con = make_con(server)
 
     # Create a sample table
     data = pa.table({"id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]})

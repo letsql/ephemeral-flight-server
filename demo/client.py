@@ -13,7 +13,7 @@ from cloudpickle import dumps, loads
 executor = ThreadPoolExecutor()
 
 
-class DuckDBFlightClient:
+class FlightClient:
     def __init__(
         self,
         host="localhost",
@@ -122,7 +122,6 @@ class DuckDBFlightClient:
         writer.close()
 
     def upload_batches(self, table_name, reader):
-
         writer, _ = self._client.do_put(
             pyarrow.flight.FlightDescriptor.for_command(table_name.encode("utf-8")),
             reader.schema,
@@ -144,7 +143,7 @@ class DuckDBFlightClient:
         action = pyarrow.flight.Action("list_tables", b"")
         results = list(self._client.do_action(action, options=self._options))
         return [
-            json.loads(result.body.to_pybytes().decode("utf-8")) for result in results
+            loads(result.body.to_pybytes()) for result in results
         ]
 
     def get_table_info(self, table_name):
@@ -158,10 +157,15 @@ class DuckDBFlightClient:
             Table schema information
         """
         action = pyarrow.flight.Action("table_info", table_name.encode("utf-8"))
-        results = list(self._client.do_action(action, options=self._options))
-        return [
-            json.loads(result.body.to_pybytes().decode("utf-8")) for result in results
-        ]
+        return next(
+            map(
+                loads,
+                (
+                    result.body.to_pybytes()
+                    for result in self._client.do_action(action, options=self._options)
+                ),
+            )
+        )
 
     def do_action(self, action_type, action_body="", options=None):
         try:
@@ -241,9 +245,7 @@ def main():
     parser.add_argument("--port", default=5005, help="Host port")
     args = parser.parse_args()
 
-    client = DuckDBFlightClient(
-        host=args.host, port=args.port, tls_roots=args.tls_roots
-    )
+    client = FlightClient(host=args.host, port=args.port, tls_roots=args.tls_roots)
 
     # Create a sample table
     data = pyarrow.table({"id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]})

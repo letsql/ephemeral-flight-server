@@ -1,8 +1,4 @@
 import threading
-import json
-
-import pyarrow.flight
-
 from abc import (
     ABC,
     abstractproperty,
@@ -188,12 +184,11 @@ class TableInfoAction(AbstractAction):
     @classmethod
     def do_action(cls, server, context, action):
         table_name = action.body.to_pybytes().decode("utf-8")
-        query = f'DESCRIBE "{table_name}"'
-        schema = server._conn.con.execute(query).fetchall()
-        yield pyarrow.flight.Result(json.dumps(schema).encode("utf-8"))
+        schema = server._conn.get_schema(table_name)
+        yield make_flight_result(schema)
+
 
 class DropTableAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -210,8 +205,8 @@ class DropTableAction(AbstractAction):
         server._conn.execute(table_name)
         yield make_flight_result(f"dropped table {table_name}")
 
-class DropViewAction(AbstractAction):
 
+class DropViewAction(AbstractAction):
     @classmethod
     @property
     def name(cls):
@@ -230,7 +225,6 @@ class DropViewAction(AbstractAction):
 
 
 class ReadParquetAction(AbstractAction):
-
     @classmethod
     @property
     def name(cls):
@@ -250,6 +244,7 @@ class ReadParquetAction(AbstractAction):
 
         server._conn.read_parquet(source_list, table_name)
         yield make_flight_result(f"read parquet file {table_name}")
+
 
 actions = {
     action.name: action

@@ -1,14 +1,13 @@
 import argparse
 import base64
-import json
 import secrets
 
 import duckdb
 import pyarrow as pa
 import pyarrow.flight
 
-import demo.exchanger as E
 import demo.action as A
+import demo.exchanger as E
 
 
 class BasicAuthServerMiddlewareFactory(pa.flight.ServerMiddlewareFactory):
@@ -161,7 +160,6 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         data = reader.read_all()
 
         try:
-            # Convert Arrow table to DuckDB table
             self._conn.register(data, table_name=table_name)
         except Exception as e:
             raise pyarrow.flight.FlightServerError(f"Error creating table: {str(e)}")
@@ -170,10 +168,7 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         """
         List available custom actions
         """
-        return [
-            (action.name, action.description)
-            for action in self.actions.values()
-        ]
+        return [(action.name, action.description) for action in self.actions.values()]
 
     def do_action(self, context, action):
         cls = self.actions.get(action.type)

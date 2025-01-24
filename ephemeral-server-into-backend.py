@@ -3,9 +3,8 @@ import letsql as ls
 
 from letsql.expr.relations import into_backend
 
-from demo import EphemeralServer, make_client, BasicAuth
+from demo import EphemeralServer, make_con, BasicAuth
 from util import certificate_path, key_path, scheme, host, port
-
 
 
 with EphemeralServer(
@@ -20,8 +19,8 @@ with EphemeralServer(
         key_path=key_path,
         auth=BasicAuth("test", "password"),
     ) as second:
-        main_con = make_client(main)
-        second_con = make_client(second)
+        main_con = make_con(main)
+        second_con = make_con(second)
 
         # Create a sample table
         data = pa.table({"id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]})

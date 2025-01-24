@@ -1,6 +1,3 @@
-import time
-from multiprocessing import Process, Queue
-
 import letsql as ls
 
 from demo.backend import Backend
@@ -13,51 +10,6 @@ DEFAULT_AUTH_MIDDLEWARE = {
         }
     )
 }
-
-
-class ServerWorker:
-    def __init__(
-        self,
-        location=None,
-        tls_certificates=None,
-        verify_client=False,
-        root_certificates=None,
-        auth_handler=NoOpAuthHandler(),
-        middleware=None,
-    ):
-        if middleware is None:
-            middleware = DEFAULT_AUTH_MIDDLEWARE
-
-        self.started = False
-        self.server = FlightServer(
-            ls.duckdb.connect,
-            location,
-            tls_certificates=tls_certificates,
-            verify_client=verify_client,
-            root_certificates=root_certificates,
-            auth_handler=auth_handler,
-            middleware=middleware,
-        )
-
-    def _serve(self):
-        if not self.started:
-            self.server.serve()
-        self.started = True
-
-    def _shutdown(self):
-        """Shut down after a delay."""
-        print("Server is shutting down...")
-        time.sleep(2)
-        self.server.shutdown()
-
-    def handle(self, commands):
-        while True:
-            command = commands.get()
-            if command == "serve":
-                self._serve()
-            elif command == "shutdown":
-                self._shutdown()
-                break
 
 
 class BasicAuth:
@@ -87,6 +39,7 @@ class EphemeralServer:
         verify_client=False,
         root_certificates=None,
         auth: BasicAuth = None,
+        connection=ls.duckdb.connect,
     ):
         self.location = location
         self.certificate_path = certificate_path
@@ -103,36 +56,24 @@ class EphemeralServer:
 
         tls_certificates.append((tls_cert_chain, tls_private_key))
 
-        def server_process(cmd_q):
-            worker = ServerWorker(
-                location=location,
-                tls_certificates=tls_certificates,
-                verify_client=verify_client,
-                root_certificates=root_certificates,
-                auth_handler=NoOpAuthHandler(),
-                middleware=to_basic_auth_middleware(auth),
-            )
-            worker.handle(cmd_q)
-
-        self.commands = Queue()
-        self.p = Process(target=server_process, args=(self.commands,))
-        self.p.start()
+        self.server = FlightServer(
+            connection,
+            location,
+            tls_certificates=tls_certificates,
+            verify_client=verify_client,
+            root_certificates=root_certificates,
+            auth_handler=NoOpAuthHandler(),
+            middleware=to_basic_auth_middleware(auth),
+        )
 
     def __enter__(self):
-        print("Server started...")
-        self.commands.put(("serve",))
         return self
 
     def __exit__(self, *args):
-        self.close()
-
-    def close(self):
-        print("Server shutting down...")
-        self.commands.put(("shutdown",))
-        self.p.terminate()
+        self.server.__exit__(*args)
 
 
-def make_client(
+def make_con(
     con: EphemeralServer,
 ) -> Backend:
     from urllib.parse import urlparse
@@ -150,4 +91,4 @@ def make_client(
     return instance
 
 
-__all__ = ["EphemeralServer", "make_client", "BasicAuth"]
+__all__ = ["EphemeralServer", "make_con", "BasicAuth"]
