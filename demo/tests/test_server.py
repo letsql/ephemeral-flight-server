@@ -21,6 +21,7 @@ def port_in_use(port, host='localhost'):
     [
         pytest.param(ls.duckdb.connect, 5005, id="duckdb"),
         pytest.param(ls.connect, 5005, id="letsql"),
+        pytest.param(ls.datafusion.connect, 5005, id="datafusion", marks=pytest.mark.xfail(reason="fails on ibis 9.5.0")),
     ],
 )
 def test_create_and_list_tables(connection, port):

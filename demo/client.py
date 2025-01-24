@@ -77,18 +77,9 @@ class FlightClient:
         Returns:
             pyarrow.Table
         """
-        # Get FlightInfo
-        flight_info = self._client.get_flight_info(
-            pyarrow.flight.FlightDescriptor.for_command(query.encode("utf-8")),
-            options=self._options,
-        )
 
-        # Get the first endpoint
-        endpoint = flight_info.endpoints[0]
-
-        # Get the result
-        reader = self._client.do_get(endpoint.ticket, options=self._options)
-        return reader.read_all()
+        batches = self.execute_batches(query)
+        return batches.read_all()
 
     def execute_batches(self, query):
         # Get FlightInfo
