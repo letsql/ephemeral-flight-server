@@ -1,7 +1,3 @@
-import threading
-import time
-from multiprocessing import Process, Queue
-
 import letsql as ls
 
 from demo.backend import Backend
@@ -14,6 +10,7 @@ DEFAULT_AUTH_MIDDLEWARE = {
         }
     )
 }
+
 
 class BasicAuth:
     def __init__(self, username, password):
@@ -42,7 +39,7 @@ class EphemeralServer:
         verify_client=False,
         root_certificates=None,
         auth: BasicAuth = None,
-        connection = ls.duckdb.connect,
+        connection=ls.duckdb.connect,
     ):
         self.location = location
         self.certificate_path = certificate_path
@@ -75,6 +72,7 @@ class EphemeralServer:
     def __exit__(self, *args):
         self.server.__exit__(*args)
 
+
 def make_con(
     con: EphemeralServer,
 ) -> Backend:
@@ -91,5 +89,6 @@ def make_con(
         tls_roots=con.certificate_path,
     )
     return instance
+
 
 __all__ = ["EphemeralServer", "make_con", "BasicAuth"]

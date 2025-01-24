@@ -7,7 +7,6 @@ from demo import EphemeralServer, make_con, BasicAuth
 from util import certificate_path, key_path, scheme, host, port
 
 
-
 with EphemeralServer(
     location="{}://{}:{}".format(scheme, host, port),
     certificate_path=certificate_path,

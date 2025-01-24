@@ -17,15 +17,17 @@ from util import certificate_path, key_path, scheme, host
 def test_create_and_list_tables(connection, port):
     # check that the port is occupied
     with EphemeralServer(
-            location="{}://{}:{}".format(scheme, host, port),
-            certificate_path=certificate_path,
-            key_path=key_path,
-            auth=BasicAuth("test", "password"),
-            connection=connection,
+        location="{}://{}:{}".format(scheme, host, port),
+        certificate_path=certificate_path,
+        key_path=key_path,
+        auth=BasicAuth("test", "password"),
+        connection=connection,
     ) as main:
         con = make_con(main)
 
-        data = pa.table({"id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]}).to_pandas()
+        data = pa.table(
+            {"id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]}
+        ).to_pandas()
 
         t = con.register(data, table_name="users")
         actual = ls.execute(t)

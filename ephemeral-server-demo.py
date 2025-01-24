@@ -21,10 +21,10 @@ def instrument_reader(reader, prefix=""):
 location = "{}://{}:{}".format(scheme, host, port)
 
 with EphemeralServer(
-        location=location,
-        certificate_path=certificate_path,
-        key_path=key_path,
-        auth=BasicAuth("test", "password"),
+    location=location,
+    certificate_path=certificate_path,
+    key_path=key_path,
+    auth=BasicAuth("test", "password"),
 ) as server:
     client = FlightClient(
         host="localhost",

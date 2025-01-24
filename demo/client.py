@@ -58,8 +58,8 @@ class FlightClient:
                     print("Server is not ready, waiting...")
                 else:
                     raise e
-            except pyarrow.flight.FlightUnavailableError as e:
-                print(e)
+            except pyarrow.flight.FlightUnavailableError:
+                pass
             except pyarrow.flight.FlightUnauthenticatedError:
                 break
             finally:
@@ -122,7 +122,6 @@ class FlightClient:
         writer.close()
 
     def upload_batches(self, table_name, reader):
-
         writer, _ = self._client.do_put(
             pyarrow.flight.FlightDescriptor.for_command(table_name.encode("utf-8")),
             reader.schema,
@@ -246,9 +245,7 @@ def main():
     parser.add_argument("--port", default=5005, help="Host port")
     args = parser.parse_args()
 
-    client = FlightClient(
-        host=args.host, port=args.port, tls_roots=args.tls_roots
-    )
+    client = FlightClient(host=args.host, port=args.port, tls_roots=args.tls_roots)
 
     # Create a sample table
     data = pyarrow.table({"id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]})

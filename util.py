@@ -7,4 +7,3 @@ key_path = root / "tls" / "server.key"
 scheme = "grpc+tls"
 host = "localhost"
 port = "5005"
-

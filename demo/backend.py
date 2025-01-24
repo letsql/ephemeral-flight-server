@@ -1,18 +1,18 @@
-from operator import itemgetter
 from pathlib import Path
 from typing import Mapping, Any, Iterable
 
-import ibis
 import pandas as pd
 import pyarrow as pa
-import sqlglot as sg
 from ibis import util
-from ibis.backends.sql import SQLBackend
-from ibis.common.collections import FrozenOrderedDict
 from ibis.expr import types as ir, schema as sch
 from letsql.backends.duckdb import Backend as DuckDBBackend
 
-from demo.action import DropTableAction, DropViewAction, ReadParquetAction, ListTablesAction
+from demo.action import (
+    DropTableAction,
+    DropViewAction,
+    ReadParquetAction,
+    ListTablesAction,
+)
 from demo.client import FlightClient
 
 
@@ -59,7 +59,6 @@ class Backend(DuckDBBackend):
             self.con.upload_batches(table_name, source)
         return self.table(table_name)
 
-
     def read_parquet(
         self,
         source_list: str | Iterable[str],
@@ -70,9 +69,10 @@ class Backend(DuckDBBackend):
             "source_list": source_list,
             "table_name": table_name,
         }
-        self.con.do_action(ReadParquetAction.name, action_body=args, options=self.con._options)
+        self.con.do_action(
+            ReadParquetAction.name, action_body=args, options=self.con._options
+        )
         return self.table(table_name)
-
 
     def register(
         self,
@@ -82,7 +82,9 @@ class Backend(DuckDBBackend):
     ) -> ir.Table:
         if isinstance(source, pd.DataFrame):
             source = pa.Table.from_pandas(source)
-            source = pa.RecordBatchReader.from_batches(source.schema, source.to_batches())
+            source = pa.RecordBatchReader.from_batches(
+                source.schema, source.to_batches()
+            )
 
         if isinstance(source, pa.RecordBatchReader):
             self.con.upload_batches(table_name, source)
@@ -91,9 +93,10 @@ class Backend(DuckDBBackend):
 
     @property
     def tables(self):
-        res = self.con.do_action(ListTablesAction.name, action_body="list_tables", options=self.con._options)
+        res = self.con.do_action(
+            ListTablesAction.name, action_body="list_tables", options=self.con._options
+        )
         return res[0]
-
 
     def drop_table(
         self,
@@ -101,7 +104,9 @@ class Backend(DuckDBBackend):
         database: tuple[str, str] | str | None = None,
         force: bool = False,
     ) -> None:
-        self.con.do_action(DropTableAction.name, action_body=name, options=self.con._options)
+        self.con.do_action(
+            DropTableAction.name, action_body=name, options=self.con._options
+        )
 
     def drop_view(
         self,
@@ -111,7 +116,9 @@ class Backend(DuckDBBackend):
         schema: str | None = None,
         force: bool = False,
     ) -> None:
-        self.con.do_action(DropViewAction.name, action_body=name, options=self.con._options)
+        self.con.do_action(
+            DropViewAction.name, action_body=name, options=self.con._options
+        )
 
     def to_pyarrow_batches(
         self,

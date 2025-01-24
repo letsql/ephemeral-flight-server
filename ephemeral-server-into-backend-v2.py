@@ -8,7 +8,7 @@ from demo import EphemeralServer, make_con, BasicAuth
 from util import certificate_path, key_path, scheme, host, port
 
 root = pathlib.Path(__file__).resolve().parent
-batting_path = root / 'data' / 'batting.parquet'
+batting_path = root / "data" / "batting.parquet"
 
 with EphemeralServer(
     location="{}://{}:{}".format(scheme, host, port),
@@ -26,15 +26,21 @@ with EphemeralServer(
         con1 = make_con(second)
 
         df_groups = {
-            "a": pd.DataFrame({"time": [1, 3, 5]}, ),
-            "b": pd.DataFrame({"time": [2, 4, 6]}, ),
-            "c": pd.DataFrame({"time": [2.5, 4.5, 6.5]}, ),
+            "a": pd.DataFrame(
+                {"time": [1, 3, 5]},
+            ),
+            "b": pd.DataFrame(
+                {"time": [2, 4, 6]},
+            ),
+            "c": pd.DataFrame(
+                {"time": [2.5, 4.5, 6.5]},
+            ),
         }
 
         for name, df in df_groups.items():
             con0.register(df, f"df-{name}")
         dct = {
-            table: ls.expr.relations.into_backend(con0.table(table), con1, f"remote-{table}")
+            table: into_backend(con0.table(table), con1, f"remote-{table}")
             for table in reversed(list(con0.tables))
         }
         (t, other, *others) = tuple(dct.values())
