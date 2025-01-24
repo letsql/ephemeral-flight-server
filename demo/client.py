@@ -143,7 +143,7 @@ class FlightClient:
         action = pyarrow.flight.Action("list_tables", b"")
         results = list(self._client.do_action(action, options=self._options))
         return [
-            json.loads(result.body.to_pybytes().decode("utf-8")) for result in results
+            loads(result.body.to_pybytes()) for result in results
         ]
 
     def get_table_info(self, table_name):
