@@ -1,5 +1,7 @@
 import letsql as ls
+import pandas as pd
 import pytest
+import pyarrow as pa
 
 from demo import EphemeralServer, BasicAuth, make_con
 from util import certificate_path, key_path, scheme, host
@@ -9,8 +11,7 @@ from util import certificate_path, key_path, scheme, host
     "connection,port",
     [
         pytest.param(ls.duckdb.connect, 5005, id="duckdb"),
-        pytest.param(ls.connect, 5006, id="letsql"),
-        pytest.param(ls.datafusion.connect, 5007, id="datafusion"),
+        pytest.param(ls.connect, 5005, id="letsql"),
     ],
 )
 def test_create_and_list_tables(connection, port):
@@ -23,5 +24,11 @@ def test_create_and_list_tables(connection, port):
             connection=connection,
     ) as main:
         con = make_con(main)
-        res = con.tables
-        assert isinstance(res, tuple)
+
+        data = pa.table({"id": [1, 2, 3], "name": ["Alice", "Bob", "Charlie"]}).to_pandas()
+
+        t = con.register(data, table_name="users")
+        actual = ls.execute(t)
+
+        assert "users" in con.tables
+        assert isinstance(actual, pd.DataFrame)

@@ -15,42 +15,6 @@ DEFAULT_AUTH_MIDDLEWARE = {
     )
 }
 
-
-class ServerWorker:
-    def __init__(
-        self,
-        location=None,
-        tls_certificates=None,
-        verify_client=False,
-        root_certificates=None,
-        auth_handler=NoOpAuthHandler(),
-        middleware=None,
-        connection=None,
-    ):
-        if middleware is None:
-            middleware = DEFAULT_AUTH_MIDDLEWARE
-
-        self.started = False
-        self.server = FlightServer(
-            connection,
-            location,
-            tls_certificates=tls_certificates,
-            verify_client=verify_client,
-            root_certificates=root_certificates,
-            auth_handler=auth_handler,
-            middleware=middleware,
-        )
-
-    def _serve(self):
-        if not self.started:
-            print("Server is starting...")
-            self.server.serve()
-        self.started = True
-
-    def _shutdown(self):
-        print("Server is shutting down...")
-        self.server.shutdown()
-
 class BasicAuth:
     def __init__(self, username, password):
         self.username = username
@@ -105,25 +69,13 @@ class EphemeralServer:
             middleware=to_basic_auth_middleware(auth),
         )
 
-
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         self.server.__exit__(*args)
 
-    def _shutdown(self):
-        """Shut down after a delay."""
-        print("Server is shutting down...")
-        self.server.shutdown()
-        time.sleep(2)
-
-    def close(self):
-        self._shutdown()
-
-        # threading.Thread(target=self._shutdown).start()
-
-def make_client(
+def make_con(
     con: EphemeralServer,
 ) -> Backend:
     from urllib.parse import urlparse
@@ -140,21 +92,4 @@ def make_client(
     )
     return instance
 
-def make_con(
-    se: EphemeralServer,
-) -> Backend:
-    from urllib.parse import urlparse
-
-    url = urlparse(se.location)
-
-    instance = Backend()
-    instance.do_connect(
-        host=url.hostname,
-        port=url.port,
-        username=se.auth.username,
-        password=se.auth.password,
-        tls_roots=se.certificate_path,
-    )
-    return instance
-
-__all__ = ["EphemeralServer", "make_client", "make_con", "BasicAuth"]
+__all__ = ["EphemeralServer", "make_con", "BasicAuth"]

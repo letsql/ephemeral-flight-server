@@ -4,7 +4,7 @@ import pandas as pd
 import letsql as ls
 from letsql.expr.relations import into_backend
 
-from demo import EphemeralServer, make_client, BasicAuth
+from demo import EphemeralServer, make_con, BasicAuth
 from util import certificate_path, key_path, scheme, host, port
 
 root = pathlib.Path(__file__).resolve().parent
@@ -22,8 +22,8 @@ with EphemeralServer(
         key_path=key_path,
         auth=BasicAuth("test", "password"),
     ) as second:
-        con0 = make_client(main)
-        con1 = make_client(second)
+        con0 = make_con(main)
+        con1 = make_con(second)
 
         df_groups = {
             "a": pd.DataFrame({"time": [1, 3, 5]}, ),

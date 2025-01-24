@@ -44,19 +44,7 @@ class Backend(DuckDBBackend):
         catalog: str | None = None,
         database: str | None = None,
     ) -> sch.Schema:
-        fields = self.con.get_table_info(table_name)[0]
-        names, types, nullables = zip(*map(itemgetter(0, 1, 2), fields))
-
-        type_mapper = self.compiler.type_mapper
-
-        return sch.Schema(
-            FrozenOrderedDict(
-                {
-                    name: type_mapper.from_string(typ, nullable=null == "YES")
-                    for name, typ, null in zip(names, types, nullables)
-                }
-            )
-        )
+        return self.con.get_table_info(table_name)
 
     def read_in_memory(
         self,

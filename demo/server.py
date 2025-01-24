@@ -161,7 +161,6 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         data = reader.read_all()
 
         try:
-            # Convert Arrow table to DuckDB table
             self._conn.register(data, table_name=table_name)
         except Exception as e:
             raise pyarrow.flight.FlightServerError(f"Error creating table: {str(e)}")

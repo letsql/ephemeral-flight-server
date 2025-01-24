@@ -158,10 +158,15 @@ class FlightClient:
             Table schema information
         """
         action = pyarrow.flight.Action("table_info", table_name.encode("utf-8"))
-        results = list(self._client.do_action(action, options=self._options))
-        return [
-            json.loads(result.body.to_pybytes().decode("utf-8")) for result in results
-        ]
+        return next(
+            map(
+                loads,
+                (
+                    result.body.to_pybytes()
+                    for result in self._client.do_action(action, options=self._options)
+                ),
+            )
+        )
 
     def do_action(self, action_type, action_body="", options=None):
         try:

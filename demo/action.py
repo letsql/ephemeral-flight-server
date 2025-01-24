@@ -188,9 +188,8 @@ class TableInfoAction(AbstractAction):
     @classmethod
     def do_action(cls, server, context, action):
         table_name = action.body.to_pybytes().decode("utf-8")
-        query = f'DESCRIBE "{table_name}"'
-        schema = server._conn.con.execute(query).fetchall()
-        yield pyarrow.flight.Result(json.dumps(schema).encode("utf-8"))
+        schema = server._conn.get_schema(table_name)
+        yield make_flight_result(schema)
 
 
 class DropTableAction(AbstractAction):
