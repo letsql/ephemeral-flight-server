@@ -125,8 +125,9 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             query: SQL query string
         """
         # Execute query to get schema and metadata
-        expr = loads(query)
-        result = self._conn.to_pyarrow_batches(expr).read_all()
+        kwargs = loads(query)
+        expr = kwargs.pop("expr")
+        result = self._conn.to_pyarrow_batches(expr, **kwargs).read_all()
         descriptor = pyarrow.flight.FlightDescriptor.for_command(query)
 
         endpoints = [pyarrow.flight.FlightEndpoint(query, [self._location])]
@@ -146,10 +147,11 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         """
         Execute SQL query and return results
         """
-        query = loads(ticket.ticket)
+        kwargs = loads(ticket.ticket)
+        expr = kwargs.pop("expr")
         try:
             # Execute query and convert to Arrow table
-            result = self._conn.to_pyarrow_batches(query).read_all()
+            result = self._conn.to_pyarrow_batches(expr).read_all()
             return pyarrow.flight.RecordBatchStream(result)
         except Exception as e:
             raise pyarrow.flight.FlightServerError(f"Error executing query: {str(e)}")

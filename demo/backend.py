@@ -136,5 +136,5 @@ class Backend(DuckDBBackend):
             for chunk in chunks:
                 yield chunk.data
 
-        batches = self.con.execute_batches(expr)
+        batches = self.con.execute_batches(expr, params=params, limit=limit, chunk_size=chunk_size)
         return pa.RecordBatchReader.from_batches(batches.schema, gen(batches))

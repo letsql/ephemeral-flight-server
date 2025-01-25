@@ -81,10 +81,13 @@ class FlightClient:
         batches = self.execute_batches(query)
         return batches.read_all()
 
-    def execute_batches(self, query):
+    def execute_batches(self, expr, **kwargs):
         # Get FlightInfo
         flight_info = self._client.get_flight_info(
-            pyarrow.flight.FlightDescriptor.for_command(dumps(query)),
+            pyarrow.flight.FlightDescriptor.for_command(dumps({
+                "expr": expr,
+                **kwargs,
+            })),
             options=self._options,
         )
 
