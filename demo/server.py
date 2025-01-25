@@ -9,6 +9,7 @@ import pyarrow.flight
 import demo.action as A
 import demo.exchanger as E
 
+from cloudpickle import loads
 
 class BasicAuthServerMiddlewareFactory(pa.flight.ServerMiddlewareFactory):
     """
@@ -124,7 +125,8 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             query: SQL query string
         """
         # Execute query to get schema and metadata
-        result = self._conn.sql(query).to_pyarrow()
+        expr = loads(query)
+        result = self._conn.to_pyarrow_batches(expr).read_all()
         descriptor = pyarrow.flight.FlightDescriptor.for_command(query)
 
         endpoints = [pyarrow.flight.FlightEndpoint(query, [self._location])]
@@ -137,17 +139,17 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         """
         Get info about a specific query
         """
-        query = descriptor.command.decode("utf-8")
+        query = descriptor.command
         return self._make_flight_info(query)
 
     def do_get(self, context, ticket):
         """
         Execute SQL query and return results
         """
-        query = ticket.ticket.decode("utf-8")
+        query = loads(ticket.ticket)
         try:
             # Execute query and convert to Arrow table
-            result = self._conn.sql(query).to_pyarrow()
+            result = self._conn.to_pyarrow_batches(query).read_all()
             return pyarrow.flight.RecordBatchStream(result)
         except Exception as e:
             raise pyarrow.flight.FlightServerError(f"Error executing query: {str(e)}")

@@ -44,9 +44,9 @@ with EphemeralServer(
     # Get table info
     print("Table schema:", client.get_table_info("users"))
 
-    # Execute a query
-    result = client.execute_query("SELECT * FROM users WHERE id > 1")
-    print("Query result:", result.to_pandas())
+    # Execute a query DEPRECATED
+    # result = client.execute_query("SELECT * FROM users WHERE id > 1")
+    # print("Query result:", result.to_pandas())
 
     command = "echo"
     data = pyarrow.Table.from_pandas(pd.DataFrame({"a": range(100_000)}))

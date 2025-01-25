@@ -129,12 +129,12 @@ class Backend(DuckDBBackend):
         chunk_size: int = 10_000,
         **_: Any,
     ) -> pa.ipc.RecordBatchReader:
-        table_expr = expr.as_table()
-        sql = self.compile(table_expr, limit=limit, params=params)
+        # table_expr = expr.as_table()
+        # sql = self.compile(table_expr, limit=limit, params=params)
 
         def gen(chunks):
             for chunk in chunks:
                 yield chunk.data
 
-        batches = self.con.execute_batches(sql)
+        batches = self.con.execute_batches(expr)
         return pa.RecordBatchReader.from_batches(batches.schema, gen(batches))
