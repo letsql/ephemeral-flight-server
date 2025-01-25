@@ -129,8 +129,6 @@ class Backend(DuckDBBackend):
         chunk_size: int = 10_000,
         **_: Any,
     ) -> pa.ipc.RecordBatchReader:
-        # table_expr = expr.as_table()
-        # sql = self.compile(table_expr, limit=limit, params=params)
 
         def gen(chunks):
             for chunk in chunks:
